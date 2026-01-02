@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Interface</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Font for Digital Clock -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; -webkit-tap-highlight-color: transparent; }
+        
+        /* --- CUSTOM TOAST --- */
+        #custom-toast {
+            visibility: hidden; min-width: 250px; margin-left: -125px; background-color: #333; color: #fff; text-align: center; border-radius: 50px; padding: 16px; position: fixed; z-index: 10000; left: 50%; top: 30px; font-size: 14px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.5); opacity: 0; transition: opacity 0.3s, top 0.3s;
+        }
+        #custom-toast.show { visibility: visible; opacity: 1; top: 50px; }
+        #custom-toast.error { background-color: #ff1744; }
+        #custom-toast.success { background-color: #00c853; }
+
+        /* LOGIN SCREEN */
+        #login-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #0d1117; z-index: 9999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px;
+        }
+        .login-box {
+            width: 100%; max-width: 350px; background: #161b22; padding: 30px 20px;
+            border-radius: 15px; text-align: center; border: 1px solid #30363d;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+        }
+        .login-logo { width: 80px; margin-bottom: 20px; }
+        .login-input {
+            width: 100%; padding: 12px; margin-bottom: 15px; border-radius: 8px;
+            border: 1px solid #30363d; background: #0d1117; color: white; font-size: 15px; outline: none;
+        }
+        .login-input:focus { border-color: #1976d2; }
+        .login-btn {
+            width: 100%; padding: 12px; border-radius: 25px; border: none;
+            background: linear-gradient(135deg, #1976d2, #1565c0); color: white;
+            font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 5px;
+        }
+        .contact-admin-btn {
+            margin-top: 25px; display: flex; align-items: center; justify-content: center; gap: 10px;
+            background: #00c853; color: white; padding: 10px 20px; border-radius: 25px;
+            text-decoration: none; font-weight: bold; font-size: 14px; box-shadow: 0 4px 10px rgba(0,200,83,0.3);
+            width: 100%; max-width: 350px; cursor: pointer;
+        }
+        #loading-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #0d1117; z-index: 10000; display: flex; justify-content: center; align-items: center; color: white; font-weight: bold; font-size: 18px; }
+
+        /* APP STYLES */
+        body { background-color: #f0f2f5; display: flex; justify-content: center; transition: background-color 0.3s, color 0.3s; }
+        .app-container { width: 100%; max-width: 480px; background-color: #f0f2f5; min-height: 100vh; position: relative; padding-bottom: 80px; transition: background-color 0.3s; display: none; }
+        header { display: flex; justify-content: space-between; align-items: center; height: 60px; padding: 0 15px; background-color: #fff; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; transition: background-color 0.3s; }
+        .header-left { width: 60px; display: flex; align-items: center; }
+        .toggle-container { position: relative; width: 50px; height: 28px; display: flex; align-items: center; cursor: pointer; }
+        .toggle-bg { background-color: #eee; width: 45px; height: 24px; border-radius: 15px; position: absolute; left: 10px; z-index: 1; transition: background-color 0.3s; }
+        .plus-circle { width: 28px; height: 28px; background-color: #4caf50; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 14px; position: absolute; left: 0; z-index: 2; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: transform 0.3s, border-color 0.3s; }
+        .toggle-container.active .plus-circle { transform: translateX(25px); background-color: #1976d2; border-color: #222; }
+        .toggle-container.active .toggle-bg { background-color: #444; }
+        .logo-container { flex-grow: 1; display: flex; justify-content: center; align-items: center; height: 100%; overflow: visible; }
+        .logo-img { height: 55px; width: auto; max-width: 250px; object-fit: contain; transform: scale(1.4); }
+        .header-right { width: 60px; display: flex; justify-content: flex-end; }
+        .search-icon { font-size: 22px; color: #1976d2; }
+        .screen { display: none; }
+        .screen.active { display: block; }
+        .home-content { padding: 20px; display: flex; flex-direction: column; gap: 15px; padding-top: 20px; }
+        .config-card { background: white; border-radius: 15px; padding: 20px 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); text-align: center; display: flex; flex-direction: column; gap: 15px; transition: background-color 0.3s; }
+        .input-label { font-size: 13px; font-weight: bold; color: #1976d2; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.5px; text-align: left; padding-left: 5px; }
+        .time-selector { display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 5px; background: #f8fafc; padding: 10px; border-radius: 12px; border: 1px solid #e2e8f0; transition: background-color 0.3s, border-color 0.3s; }
+        .custom-dropdown { position: relative; width: 55px; height: 40px; }
+        .dropdown-trigger { width: 100%; height: 100%; background: #fff; border: 1px solid #cbd5e1; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 16px; color: #1e293b; cursor: pointer; transition: all 0.2s; user-select: none; }
+        .dropdown-options { position: absolute; top: 105%; left: 50%; transform: translateX(-50%); width: 70px; max-height: 180px; overflow-y: auto; background: #fff; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.2); z-index: 1000; display: none; border: 1px solid #e2e8f0; }
+        .custom-dropdown.open .dropdown-options { display: block; animation: fadeInDrop 0.2s ease; }
+        .dropdown-option { padding: 8px 0; text-align: center; font-weight: 500; font-size: 15px; color: #333; cursor: pointer; transition: background 0.1s; }
+        .dropdown-option:hover { background-color: #f1f5f9; }
+        .dropdown-option.selected { background-color: #e3f2fd; color: #1976d2; font-weight: bold; }
+        .dropdown-options::-webkit-scrollbar { width: 4px; }
+        .dropdown-options::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .dropdown-options::-webkit-scrollbar-track { background: #f1f1f1; }
+        @keyframes fadeInDrop { from { opacity: 0; transform: translate(-50%, -10px); } to { opacity: 1; transform: translate(-50%, 0); } }
+        .colon { font-size: 18px; font-weight: bold; color: #64748b; margin-top: -2px; }
+        .action-btn { background: linear-gradient(135deg, #1976d2, #1565c0); color: white; border: none; width: 100%; padding: 16px; border-radius: 12px; font-weight: 700; font-size: 16px; cursor: pointer; box-shadow: 0 4px 10px rgba(25, 118, 210, 0.3); margin-top: 10px; }
+        .action-btn:active { transform: scale(0.98); }
+        
+        /* --- RESULTS BOXES --- */
+        
+        /* 1. ORIGINAL WHITE/BLUE BOX */
+        #prediction-result { 
+            display: none; margin-top: 15px; padding: 15px; 
+            background: #e3f2fd; 
+            border-radius: 12px; 
+            border: 2px dashed #1976d2; 
+            animation: fadeIn 0.5s; 
+        }
+        .result-title { font-size: 12px; color: #555; font-weight: bold; text-transform: uppercase; }
+        .result-time { font-size: 32px; color: #d32f2f; font-weight: 800; margin-top: 5px; letter-spacing: 2px; }
+
+        /* 2. NEW GREEN BOX (+1 MINUTE, 59 SECONDS) */
+        #prediction-result-plus {
+            display: none; margin-top: 10px; padding: 15px;
+            background: #00c853; /* SOLID GREEN */
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0, 200, 83, 0.3);
+            animation: fadeIn 0.5s;
+        }
+        .result-title-white { font-size: 12px; color: #e8f5e9; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        .result-time-white { font-size: 32px; color: #ffffff; font-weight: 800; margin-top: 5px; letter-spacing: 2px; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+
+
+        #favorites-screen { padding-top: 20px; text-align: center; height: calc(100vh - 140px); display: none; }
+        #favorites-screen.active { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 25px; }
+        .top-badges { width: 90%; display: flex; justify-content: space-between; align-items: center; }
+        .server-badge { border: 1px solid #00e5ff; color: #00e5ff; padding: 5px 15px; border-radius: 5px; font-weight: bold; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 0 5px rgba(0, 229, 255, 0.3); }
+        .online-badge { background-color: transparent; border: 1px solid #00c853; color: #00c853; padding: 5px 15px; border-radius: 20px; font-weight: bold; font-size: 14px; display: flex; align-items: center; gap: 8px; box-shadow: 0 0 5px rgba(0, 200, 83, 0.3); }
+        .online-dot { width: 8px; height: 8px; background-color: #00c853; border-radius: 50%; box-shadow: 0 0 5px #00c853; animation: blink 2s infinite; }
+        .digital-clock { font-family: 'Orbitron', sans-serif; font-size: 48px; font-weight: 700; color: #fff; text-shadow: 0 0 10px rgba(255, 255, 255, 0.8), 0 0 20px rgba(255, 255, 255, 0.4); letter-spacing: 3px; margin-top: 10px; }
+        .neon-ring-container { position: relative; width: 260px; height: 260px; display: flex; justify-content: center; align-items: center; margin-top: 10px; }
+        .neon-ring { position: absolute; width: 100%; height: 100%; border-radius: 50%; border: 3px solid rgba(0, 229, 255, 0.1); border-top: 4px solid #00e5ff; border-right: 4px solid #00e5ff; box-shadow: 0 0 15px #00e5ff, inset 0 0 15px rgba(0, 229, 255, 0.2); animation: spinRing 3s linear infinite; }
+        @keyframes spinRing { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .ring-inner-text { display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2; width: 100%; }
+        
+        .wait-text { font-family: 'Orbitron', sans-serif; font-size: 36px; font-weight: bold; color: #fff; text-shadow: 0 0 10px #fff; letter-spacing: 1px; margin-bottom: 5px; }
+        .next-text { font-family: 'Orbitron', sans-serif; font-size: 30px; font-weight: bold; color: #ff1744; text-shadow: 0 0 10px #ff1744; margin-top: 5px; border-top: 2px solid rgba(255,255,255,0.3); padding-top: 5px; width: 80%; text-align: center; }
+
+        .back-btn { margin-top: auto; margin-bottom: 20px; background-color: #00e5ff; color: #000; border: none; padding: 12px 40px; border-radius: 25px; font-weight: bold; font-size: 16px; cursor: pointer; box-shadow: 0 0 10px rgba(0, 229, 255, 0.5); display: flex; align-items: center; gap: 10px; }
+        .back-btn:active { transform: scale(0.95); }
+        #history-list { padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        .history-card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 5px solid #1976d2; display: flex; flex-direction: column; gap: 5px; animation: fadeIn 0.3s; transition: background-color 0.3s; }
+        .h-header { display: flex; justify-content: space-between; font-size: 11px; color: #888; text-transform: uppercase; font-weight: bold; }
+        .h-body { display: flex; justify-content: space-between; align-items: center; margin-top: 5px; }
+        .h-time-group { text-align: left; }
+        .h-label { font-size: 10px; color: #555; display: block; }
+        .h-val { font-size: 14px; font-weight: 600; color: #333; }
+        .h-result { background: #e3f2fd; color: #1976d2; padding: 5px 10px; border-radius: 8px; font-weight: 800; font-size: 18px; }
+        .user-profile-card { background-color: #2c3e50; color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .profile-left { display: flex; align-items: center; gap: 15px; }
+        .profile-icon i { font-size: 45px; color: #bdc3c7; }
+        .user-details h3 { font-size: 16px; font-weight: 600; }
+        .user-details p { font-size: 12px; color: #bdc3c7; }
+        .settings-btn i { font-size: 24px; color: white; cursor: pointer; }
+        .menu-section { background: white; margin-top: 10px; transition: background-color 0.3s; }
+        .menu-btn { display: flex; align-items: center; justify-content: space-between; padding: 15px 20px; background: white; border-bottom: 1px solid #f0f0f0; cursor: pointer; transition: background 0.2s; }
+        .menu-btn:active { background: #e8e8e8; }
+        .btn-content { display: flex; align-items: center; gap: 15px; font-size: 15px; color: #333; font-weight: 500; }
+        .icon-box { width: 35px; height: 35px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 18px; }
+        .chat-icon { background-color: #e3f2fd; color: #1976d2; }
+        .support-icon { background-color: #e8f5e9; color: #2ecc71; }
+        .arrow-icon { color: #ccc; font-size: 14px; }
+        #chat-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #e5ddd5; z-index: 2000; display: none; flex-direction: column; }
+        #chat-screen.active { display: flex; }
+        .chat-header { background: #1976d2; color: white; padding: 15px; display: flex; align-items: center; gap: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); flex-shrink: 0; }
+        .chat-title { font-weight: bold; font-size: 16px; }
+        .live-dot { width: 10px; height: 10px; background-color: #ff1744; border-radius: 50%; display: inline-block; margin-right: 5px; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+        .chat-box { flex-grow: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth; }
+        .chat-message { background: white; padding: 10px; border-radius: 10px; border-bottom-left-radius: 0; box-shadow: 0 1px 2px rgba(0,0,0,0.1); animation: fadeIn 0.2s ease-in; font-size: 14px; max-width: 90%; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .chat-user { font-weight: bold; color: #444; font-size: 12px; margin-bottom: 2px; display: block; }
+        .chat-text { color: #333; line-height: 1.4; }
+        .bottom-nav { position: fixed; bottom: 0; width: 100%; max-width: 480px; background-color: white; display: flex; justify-content: space-around; align-items: center; padding: 10px 0; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); z-index: 1000; transition: background-color 0.3s; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: #777; font-size: 11px; cursor: pointer; }
+        .nav-item i { font-size: 20px; margin-bottom: 4px; }
+        .nav-item.active-nav { color: #1976d2; }
+        .bet-slip-btn { background-color: #42a5f5; width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px; margin-top: -25px; border: 4px solid #fff; box-shadow: 0 4px 10px rgba(66, 165, 245, 0.4); }
+        .nav-center { position: relative; display: flex; justify-content: center; width: 60px; }
+        .empty-history { text-align: center; color: #999; margin-top: 50px; font-size: 14px; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 3000; display: none; justify-content: center; align-items: center; }
+        .modal-box { background: white; padding: 30px 20px; border-radius: 15px; width: 80%; max-width: 300px; text-align: center; box-shadow: 0 5px 20px rgba(0,0,0,0.2); animation: fadeIn 0.3s; }
+        .copyright-text { font-size: 14px; color: #666; font-weight: 500; margin-bottom: 20px; }
+        .logout-btn { background-color: #ff1744; color: white; border: none; padding: 10px 30px; border-radius: 25px; font-weight: bold; cursor: pointer; font-size: 14px; width: 100%; }
+        .close-modal-btn { margin-top: 15px; color: #999; font-size: 12px; cursor: pointer; text-decoration: underline; }
+        body.dark-mode { background-color: #0d1117; color: #eee; }
+        body.dark-mode .app-container { background-color: #0d1117; }
+        body.dark-mode header { background-color: #161b22; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.4); }
+        body.dark-mode .config-card { background-color: #161b22; box-shadow: none; }
+        body.dark-mode .time-selector { background-color: #21262d; border-color: #30363d; }
+        body.dark-mode .dropdown-trigger { background-color: #30363d; color: white; border-color: #484f58; }
+        body.dark-mode .dropdown-options { background-color: #30363d; border-color: #484f58; box-shadow: 0 4px 15px rgba(0,0,0,0.6); }
+        body.dark-mode .dropdown-option { color: #eee; }
+        body.dark-mode .dropdown-option:hover { background-color: #484f58; }
+        body.dark-mode .dropdown-option.selected { background-color: #1f6feb; color: #fff; }
+        body.dark-mode .dropdown-options::-webkit-scrollbar-track { background: #30363d; }
+        body.dark-mode .dropdown-options::-webkit-scrollbar-thumb { background: #484f58; }
+        body.dark-mode .colon { color: #8b949e; }
+        body.dark-mode .input-label { color: #58a6ff; }
+        body.dark-mode .history-card { background-color: #161b22; border-left-color: #58a6ff; }
+        body.dark-mode .h-val { color: #fff; }
+        body.dark-mode .h-label { color: #8b949e; }
+        body.dark-mode .h-header { color: #777; }
+        body.dark-mode .h-result { background-color: #1f6feb; color: #fff; }
+        body.dark-mode .bottom-nav { background-color: #161b22; box-shadow: 0 -2px 10px rgba(0,0,0,0.3); border-top: 1px solid #30363d; }
+        body.dark-mode .bet-slip-btn { border-color: #161b22; }
+        body.dark-mode .menu-section { background-color: #161b22; }
+        body.dark-mode .menu-btn { background-color: #161b22; border-bottom-color: #30363d; }
+        body.dark-mode .btn-content { color: #eee; }
+        body.dark-mode .modal-box { background-color: #161b22; }
+        body.dark-mode .copyright-text { color: #8b949e; }
+    </style>
+</head>
+<body class="dark-mode">
+
+    <!-- CUSTOM TOAST -->
+    <div id="custom-toast"></div>
+
+    <!-- LOADING OVERLAY -->
+    <div id="loading-overlay">Checking Login...</div>
+
+    <!-- LOGIN SCREEN (OVERLAY) -->
+    <div id="login-screen" style="display:none;">
+        <div class="login-box">
+            <img src="https://i.postimg.cc/1trq9xgf/1767244399735.png" alt="Logo" class="login-logo">
+            <h2 style="color:white; margin-bottom:20px; font-size:18px;">MEMBER LOGIN</h2>
+            <input type="text" id="login-user" class="login-input" placeholder="Username">
+            <input type="password" id="login-pass" class="login-input" placeholder="Password">
+            <button class="login-btn" onclick="performLogin()">LOG IN</button>
+        </div>
+        <a href="https://wa.me/94776754917?text=How%20to%20Details" class="contact-admin-btn">
+            <i class="fa-brands fa-whatsapp" style="font-size: 20px;"></i> Contact Admin
+        </a>
+    </div>
+
+    <!-- MAIN APP CONTENT (Hidden Initially) -->
+    <div class="app-container" id="main-app">
+        <header id="main-header">
+            <div class="header-left">
+                <div class="toggle-container active" onclick="toggleDarkMode()">
+                    <div class="toggle-bg"></div>
+                    <div class="plus-circle" id="toggle-icon-div">
+                        <i class="fa-solid fa-check" id="toggle-icon"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="logo-container">
+                <img src="https://i.postimg.cc/1trq9xgf/1767244399735.png" alt="Logo" class="logo-img">
+            </div>
+            <div class="header-right">
+                <div class="search-icon"><i class="fa-solid fa-magnifying-glass"></i></div>
+            </div>
+        </header>
+
+        <div id="home-screen" class="screen active">
+            <div class="home-content">
+                <div class="config-card">
+                    <input type="hidden" id="prev-h" value="0"><input type="hidden" id="prev-m" value="0"><input type="hidden" id="prev-s" value="0">
+                    <input type="hidden" id="curr-h" value="0"><input type="hidden" id="curr-m" value="0"><input type="hidden" id="curr-s" value="0">
+                    <div class="input-label"><i class="fa-solid fa-clock-rotate-left"></i> PREVIOUS SIGNAL TIME</div>
+                    <div class="time-selector">
+                        <div id="dd-prev-h" class="custom-dropdown"></div><div class="colon">:</div>
+                        <div id="dd-prev-m" class="custom-dropdown"></div><div class="colon">:</div>
+                        <div id="dd-prev-s" class="custom-dropdown"></div>
+                    </div>
+                    <div style="height: 10px;"></div>
+                    <div class="input-label"><i class="fa-solid fa-clock"></i> CURRENT SIGNAL TIME</div>
+                    <div class="time-selector">
+                        <div id="dd-curr-h" class="custom-dropdown"></div><div class="colon">:</div>
+                        <div id="dd-curr-m" class="custom-dropdown"></div><div class="colon">:</div>
+                        <div id="dd-curr-s" class="custom-dropdown"></div>
+                    </div>
+                    <button class="action-btn" onclick="calculateNextSignal()">CALCULATE NEXT SIGNAL</button>
+                    
+                    <!-- BOX 1: STANDARD (White/Blue) -->
+                    <div id="prediction-result">
+                        <div class="result-title">Next Signal Prediction</div>
+                        <div class="result-time" id="final-time">--:--:--</div>
+                    </div>
+
+                    <!-- BOX 2: PLUS 1 MINUTE (Green, Always 59s) -->
+                    <div id="prediction-result-plus">
+                        <div class="result-title-white">Next Signal (+1 Min)</div>
+                        <div class="result-time-white" id="final-time-plus">--:--:59</div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <div id="favorites-screen" class="screen">
+            <div class="top-badges">
+                <div class="server-badge">1xBet</div>
+                <div class="online-badge">
+                    <span class="online-dot"></span> Online <span id="online-count">826</span>
+                </div>
+            </div>
+            <div class="digital-clock" id="digital-clock">00:00:00</div>
+            <div class="neon-ring-container">
+                <div class="neon-ring"></div>
+                <div class="ring-inner-text">
+                    <div class="wait-text" id="ring-time">WAITING</div>
+                    <div class="next-text" id="ring-odd">NEXT...</div>
+                </div>
+            </div>
+            <button class="back-btn" onclick="showScreen('home', document.querySelector('.nav-item.active-nav'))">
+                <i class="fa-solid fa-arrow-left"></i> Back
+            </button>
+        </div>
+
+        <div id="history-screen" class="screen">
+            <div id="history-list">
+                <div class="empty-history">No history available yet.</div>
+            </div>
+        </div>
+
+        <div id="menu-screen" class="screen">
+            <div class="user-profile-card">
+                <div class="profile-left">
+                    <div class="profile-icon"><i class="fa-solid fa-circle-user"></i></div>
+                    <div class="user-details">
+                        <h3 id="display-user-id">User</h3>
+                        <p>Active Profile</p>
+                    </div>
+                </div>
+                <div class="settings-btn" onclick="openSettingsModal()"><i class="fa-solid fa-gear"></i></div>
+            </div>
+            <div class="menu-section">
+                <div class="menu-btn" onclick="openChat()">
+                    <div class="btn-content"><div class="icon-box chat-icon"><i class="fa-solid fa-headset"></i></div> Live Chat</div>
+                    <i class="fa-solid fa-chevron-right arrow-icon"></i>
+                </div>
+                <div class="menu-btn" onclick="openWhatsApp()">
+                    <div class="btn-content"><div class="icon-box support-icon"><i class="fa-solid fa-phone-volume"></i></div> Customer Support</div>
+                    <i class="fa-solid fa-chevron-right arrow-icon"></i>
+                </div>
+            </div>
+        </div>
+
+        <div id="chat-screen">
+            <div class="chat-header">
+                <i class="fa-solid fa-arrow-left" onclick="closeChat()" style="cursor: pointer; font-size: 20px;"></i>
+                <div class="chat-title"><span class="live-dot"></span> Quick Pay Community</div>
+            </div>
+            <div class="chat-box" id="chat-box-content"></div>
+        </div>
+
+        <div id="settings-modal" class="modal-overlay">
+            <div class="modal-box">
+                <div class="copyright-text">Copyright © 2024 Quick Pay</div>
+                <button class="logout-btn" onclick="manualLogout()">LOG OUT</button>
+                <div class="close-modal-btn" onclick="closeSettingsModal()">Close</div>
+            </div>
+        </div>
+
+        <footer class="bottom-nav">
+            <div class="nav-item active-nav" onclick="showScreen('home', this)">
+                <i class="fa-solid fa-fire-flame-curved"></i> <span>Home</span>
+            </div>
+            <div class="nav-item" onclick="showScreen('favorites', this)">
+                <i class="fa-solid fa-star"></i> <span>Favorites</span>
+            </div>
+            <div class="nav-center">
+                <div class="bet-slip-btn"><i class="fa-solid fa-ticket"></i></div>
+            </div>
+            <div class="nav-item" onclick="showScreen('history', this)">
+                <i class="fa-solid fa-clock-rotate-left"></i> <span>History</span>
+            </div>
+            <div class="nav-item" onclick="showScreen('menu', this)">
+                <i class="fa-solid fa-bars"></i> <span>Menu</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- FIREBASE -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, get, child, update, onValue, onDisconnect } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+        const firebaseConfig = { apiKey: "AIzaSyAcOgft_bFhSfA_DgZ4FbS6uggBy7GqdO4", authDomain: "quickx-68b9f.firebaseapp.com", databaseURL: "https://quickx-68b9f-default-rtdb.firebaseio.com", projectId: "quickx-68b9f", storageBucket: "quickx-68b9f.firebasestorage.app", messagingSenderId: "115435219500", appId: "1:115435219500:web:264c0a453e06010a4aff89", measurementId: "G-NEQQZ0X20R" };
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        let currentUser = null;
+
+        // --- CHECK LOGIN ON LOAD ---
+        window.onload = function() {
+            // Check Local Storage
+            const savedUser = localStorage.getItem('quickPayUser');
+            if(savedUser) {
+                // Verify session with DB
+                get(child(ref(db), `users/${savedUser}`)).then((snapshot) => {
+                    if(snapshot.exists()) {
+                        const data = snapshot.val();
+                        if(Date.now() > data.expiry) {
+                            showToast("Session Expired", "error"); manualLogout();
+                        } else {
+                            // Valid Session
+                            currentUser = savedUser;
+                            update(ref(db, `users/${savedUser}`), { isLoggedIn: true });
+                            onDisconnect(ref(db, `users/${savedUser}`)).update({ isLoggedIn: false });
+                            
+                            // Load App
+                            document.getElementById('loading-overlay').style.display = 'none';
+                            document.getElementById('main-app').style.display = 'block';
+                            document.getElementById('display-user-id').innerText = savedUser;
+                            monitorUser(savedUser);
+                            
+                            // Init other features
+                            initChatAndHistory();
+                        }
+                    } else {
+                        // User deleted
+                        manualLogout();
+                    }
+                }).catch(() => {
+                    document.getElementById('loading-overlay').style.display = 'none';
+                    document.getElementById('login-screen').style.display = 'flex';
+                });
+            } else {
+                document.getElementById('loading-overlay').style.display = 'none';
+                document.getElementById('login-screen').style.display = 'flex';
+                initChatAndHistory();
+            }
+        };
+
+        // LOGIN FUNCTION
+        window.performLogin = function() {
+            const u = document.getElementById('login-user').value.trim();
+            const p = document.getElementById('login-pass').value.trim();
+            if(!u || !p) { showToast("Please enter Username and Password", "error"); return; }
+
+            get(child(ref(db), `users/${u}`)).then((snapshot) => {
+                if(snapshot.exists()) {
+                    const data = snapshot.val();
+                    if(data.password !== p) { showToast("Incorrect Password!", "error"); return; }
+                    if(Date.now() > data.expiry) { showToast("Account Expired!", "error"); return; }
+                    if(data.isLoggedIn === true) { showToast("Already Logged In on another device!", "error"); return; }
+
+                    // Success
+                    currentUser = u;
+                    localStorage.setItem('quickPayUser', u); 
+
+                    update(ref(db, `users/${u}`), { isLoggedIn: true });
+                    onDisconnect(ref(db, `users/${u}`)).update({ isLoggedIn: false });
+
+                    document.getElementById('login-screen').style.display = 'none';
+                    document.getElementById('main-app').style.display = 'block';
+                    document.getElementById('display-user-id').innerText = u;
+                    monitorUser(u);
+
+                } else { showToast("User not found!", "error"); }
+            });
+        }
+
+        // MONITOR
+        function monitorUser(u) {
+            onValue(ref(db, `users/${u}`), (snap) => {
+                const val = snap.val();
+                if(!val) { showToast("Account Deleted", "error"); setTimeout(()=>location.reload(), 2000); } 
+                else if(Date.now() > val.expiry) { showToast("Account Expired", "error"); setTimeout(()=>manualLogout(), 2000); }
+            });
+            onValue(ref(db, 'signals/current'), (snap) => {
+                const s = snap.val();
+                if(s) {
+                    document.getElementById('ring-time').innerText = s.time;
+                    document.getElementById('ring-odd').innerText = s.odd;
+                }
+            });
+        }
+
+        // LOGOUT
+        window.manualLogout = function() {
+            localStorage.removeItem('quickPayUser'); 
+            if(currentUser) {
+                update(ref(db, `users/${currentUser}`), { isLoggedIn: false })
+                .then(() => location.reload());
+            } else { location.reload(); }
+        }
+        
+        function initChatAndHistory() {
+             for(let i=0; i<6; i++) { addRandomMessage(); } loopChat(); checkAndClearHistory();
+        }
+        window.initChatAndHistory = initChatAndHistory; 
+        
+        // --- CUSTOM TOAST FUNCTION ---
+        window.showToast = function(message, type) {
+            const toast = document.getElementById('custom-toast');
+            toast.innerText = message;
+            toast.className = 'show'; // Reset classes
+            if (type === 'error') toast.classList.add('error');
+            else if (type === 'success') toast.classList.add('success');
+            
+            toast.classList.add('show');
+            setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
+        }
+    </script>
+
+    <!-- UI Scripts -->
+    <script>
+        function createCustomDropdown(containerId, inputId, maxVal) {
+            const container = document.getElementById(containerId);
+            let html = `<div class="dropdown-trigger" onclick="toggleDropdown('${containerId}')">00</div><div class="dropdown-options">`;
+            for (let i = 0; i <= maxVal; i++) {
+                let val = i < 10 ? '0' + i : i;
+                html += `<div class="dropdown-option" onclick="selectOption('${containerId}', '${inputId}', '${val}', this)">${val}</div>`;
+            }
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+        createCustomDropdown('dd-prev-h', 'prev-h', 23); createCustomDropdown('dd-prev-m', 'prev-m', 59); createCustomDropdown('dd-prev-s', 'prev-s', 59);
+        createCustomDropdown('dd-curr-h', 'curr-h', 23); createCustomDropdown('dd-curr-m', 'curr-m', 59); createCustomDropdown('dd-curr-s', 'curr-s', 59);
+
+        function toggleDropdown(id) { document.querySelectorAll('.custom-dropdown').forEach(d => { if (d.id !== id) d.classList.remove('open'); }); document.getElementById(id).classList.toggle('open'); }
+        function selectOption(cid, iid, val, el) { document.getElementById(iid).value = parseInt(val); document.getElementById(cid).querySelector('.dropdown-trigger').innerText = val; document.getElementById(cid).querySelectorAll('.dropdown-option').forEach(opt => opt.classList.remove('selected')); el.classList.add('selected'); document.getElementById(cid).classList.remove('open'); }
+        document.addEventListener('click', function(e) { if (!e.target.closest('.custom-dropdown')) { document.querySelectorAll('.custom-dropdown').forEach(d => d.classList.remove('open')); } });
+
+        let isDarkMode = true;
+        function toggleDarkMode() {
+            const body = document.body; const container = document.querySelector('.toggle-container'); const icon = document.getElementById('toggle-icon');
+            isDarkMode = !isDarkMode;
+            if (isDarkMode) { body.classList.add('dark-mode'); container.classList.add('active'); icon.classList.remove('fa-plus'); icon.classList.add('fa-check'); } 
+            else { body.classList.remove('dark-mode'); container.classList.remove('active'); icon.classList.remove('fa-check'); icon.classList.add('fa-plus'); }
+        }
+
+        function updateClock() { const now = new Date(); const h = String(now.getHours()).padStart(2, '0'); const m = String(now.getMinutes()).padStart(2, '0'); const s = String(now.getSeconds()).padStart(2, '0'); document.getElementById('digital-clock').innerText = `${h}:${m}:${s}`; }
+        setInterval(updateClock, 1000); updateClock();
+        function updateOnlineCount() { const count = Math.floor(Math.random() * (900 - 800 + 1) + 800); document.getElementById('online-count').innerText = count; }
+        setInterval(updateOnlineCount, 5000);
+
+        function calculateNextSignal() {
+            let h1 = parseInt(document.getElementById('prev-h').value) || 0; let m1 = parseInt(document.getElementById('prev-m').value) || 0; let s1 = parseInt(document.getElementById('prev-s').value) || 0;
+            let h2 = parseInt(document.getElementById('curr-h').value) || 0; let m2 = parseInt(document.getElementById('curr-m').value) || 0; let s2 = parseInt(document.getElementById('curr-s').value) || 0;
+            let time1_sec = (h1 * 3600) + (m1 * 60) + s1; let time2_sec = (h2 * 3600) + (m2 * 60) + s2;
+            if (time2_sec < time1_sec) { time2_sec += 86400; }
+            let diff = time2_sec - time1_sec; 
+            let next_total_sec = time2_sec + diff;
+
+            // 1. STANDARD CALCULATION
+            if (next_total_sec >= 86400) { next_total_sec -= 86400; }
+            let res_h = Math.floor(next_total_sec / 3600); let rem = next_total_sec % 3600; let res_m = Math.floor(rem / 60); let res_s = rem % 60;
+            let str_h = res_h < 10 ? '0' + res_h : res_h; let str_m = res_m < 10 ? '0' + res_m : res_m; let str_s = res_s < 10 ? '0' + res_s : res_s;
+            let finalStr = `${str_h}:${str_m}:${str_s}`;
+            document.getElementById('final-time').innerText = finalStr; 
+
+            // 2. PLUS 1 MINUTE CALCULATION (Seconds always 59)
+            let plus_total_sec = next_total_sec + 60;
+            if (plus_total_sec >= 86400) { plus_total_sec -= 86400; }
+            let ph = Math.floor(plus_total_sec / 3600); let prem = plus_total_sec % 3600; let pm = Math.floor(prem / 60); 
+            
+            // Force Seconds to 59
+            let ps = 59; 
+            
+            let pstr_h = ph < 10 ? '0' + ph : ph; let pstr_m = pm < 10 ? '0' + pm : pm; let pstr_s = '59';
+            let plusStr = `${pstr_h}:${pstr_m}:${pstr_s}`;
+            document.getElementById('final-time-plus').innerText = plusStr; 
+
+            // Show Both
+            document.getElementById('prediction-result').style.display = 'block';
+            document.getElementById('prediction-result-plus').style.display = 'block';
+
+            let prevStr = `${(h1<10?'0'+h1:h1)}:${(m1<10?'0'+m1:m1)}:${(s1<10?'0'+s1:s1)}`; let currStr = `${(h2<10?'0'+h2:h2)}:${(m2<10?'0'+m2:m2)}:${(s2<10?'0'+s2:s2)}`;
+            saveToHistory(prevStr, currStr, finalStr);
+        }
+
+        function checkAndClearHistory() {
+            const historyData = localStorage.getItem('signalHistory'); const startTime = localStorage.getItem('historyStartTime');
+            if (startTime) { const now = new Date().getTime(); if (now - parseInt(startTime) > 86400000) { localStorage.removeItem('signalHistory'); localStorage.removeItem('historyStartTime'); return []; } }
+            return historyData ? JSON.parse(historyData) : [];
+        }
+        function saveToHistory(prevTime, currTime, resultTime) {
+            let history = checkAndClearHistory(); if (history.length === 0) { localStorage.setItem('historyStartTime', new Date().getTime().toString()); }
+            const newRecord = { prev: prevTime, curr: currTime, res: resultTime, ts: new Date().toLocaleTimeString() };
+            history.unshift(newRecord); localStorage.setItem('signalHistory', JSON.stringify(history));
+        }
+        function renderHistory() {
+            const history = checkAndClearHistory(); const listEl = document.getElementById('history-list');
+            if (history.length === 0) { listEl.innerHTML = '<div class="empty-history">No history available yet.</div>'; return; }
+            listEl.innerHTML = '';
+            history.forEach(item => { const card = document.createElement('div'); card.className = 'history-card'; card.innerHTML = `<div class="h-header"><span>Prediction</span><span>${item.ts}</span></div><div class="h-body"><div class="h-time-group"><span class="h-label">Previous</span><span class="h-val">${item.prev}</span></div><div class="h-time-group"><span class="h-label">Current</span><span class="h-val">${item.curr}</span></div><div class="h-result">${item.res}</div></div>`; listEl.appendChild(card); });
+        }
+
+        function openSettingsModal() { document.getElementById('settings-modal').style.display = 'flex'; }
+        function closeSettingsModal() { document.getElementById('settings-modal').style.display = 'none'; }
+        function openWhatsApp() { window.location.href = "https://wa.me/94776754917?text=Hi"; }
+        function showScreen(screenName, element) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(screenName + '-screen').classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active-nav')); if(element) element.classList.add('active-nav');
+            if (screenName === 'home') { document.querySelectorAll('.nav-item')[0].classList.add('active-nav'); }
+            if(screenName === 'history') renderHistory();
+        }
+
+        const chatBox = document.getElementById('chat-box-content');
+        const names = ["Kamal", "Nuwan", "Saman", "Dilshan", "Kasun", "Ashen", "Ruwan", "Lahiru", "Amila", "Shehan", "Dinuka", "Mahesh", "Roshan", "Pradeep", "Janaka", "Sameera", "Kavindu", "Tharindu", "Isuru", "Gayan", "Nimal", "Sunil", "Bandara", "Perera", "Silva", "Fernando"];
+        const messages = ["ඇත්තටම මම හිතුවෙ නෑ මෙ ඇප් එක වැඩ කරයි කියලා", "මෙ ඇප් එකනන් සුපිරියි අද මම ලක්ෂ ගනම් Withdrawal කරනවා", "Thnk You Quick Pay අද මගෙ Withdrawal එක ලක්ෂ 2යි", "Patta app eka machan", "Salli awa bank ekata tnx", "Ado ada laksayak hewwa", "Best app ever ❤️", "Withdrawal success within 5 mins!", "Thank you sir", "මාරයි බන් සල්ලි එනවා", "Good luck everyone", "Ada dawasa goda", "Supiri wadak", "Recommended 100%", "Mage 50,000 awa.", "Quick Pay is the best", "Jayawewa!", "Thanks admin", "Godak pin"];
+        const colors = ["#d32f2f", "#1976d2", "#388e3c", "#fbc02d", "#7b1fa2", "#e64a19"];
+        
+        function loopChat() { setTimeout(() => { addRandomMessage(); loopChat(); }, Math.floor(Math.random() * (2000 - 800 + 1) + 800)); }
+        function addRandomMessage() {
+            const randomName = names[Math.floor(Math.random() * names.length)]; const randomMsg = messages[Math.floor(Math.random() * messages.length)]; const randomColor = colors[Math.floor(Math.random() * colors.length)];
+            const msgDiv = document.createElement('div'); msgDiv.className = 'chat-message';
+            msgDiv.innerHTML = `<span class="chat-user" style="color: ${randomColor}">${randomName}</span><span class="chat-text">${randomMsg}</span>`;
+            chatBox.appendChild(msgDiv); chatBox.scrollTop = chatBox.scrollHeight;
+            if(chatBox.children.length > 60) { chatBox.removeChild(chatBox.firstChild); }
+        }
+        function openChat() { document.getElementById('chat-screen').classList.add('active'); chatBox.scrollTop = chatBox.scrollHeight; }
+        function closeChat() { document.getElementById('chat-screen').classList.remove('active'); }
+    </script>
+</body>
+</html>
