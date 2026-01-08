@@ -121,8 +121,8 @@
         @keyframes spinRing { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .ring-inner-text { display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 2; width: 100%; }
         
-        .wait-text { font-family: 'Orbitron', sans-serif; font-size: 36px; font-weight: bold; color: #fff; text-shadow: 0 0 10px #fff; letter-spacing: 1px; margin-bottom: 5px; }
-        .next-text { font-family: 'Orbitron', sans-serif; font-size: 30px; font-weight: bold; color: #ff1744; text-shadow: 0 0 10px #ff1744; margin-top: 5px; border-top: 2px solid rgba(255,255,255,0.3); padding-top: 5px; width: 80%; text-align: center; }
+        .wait-text { font-family: 'Orbitron', sans-serif; font-size: 42px; font-weight: bold; color: #fff; text-shadow: 0 0 10px #fff; letter-spacing: 2px; margin-bottom: 5px; }
+        .next-text { font-family: 'Orbitron', sans-serif; font-size: 28px; font-weight: bold; color: #ff1744; text-shadow: 0 0 10px #ff1744; margin-top: 5px; border-top: 2px solid rgba(255,255,255,0.3); padding-top: 5px; width: 80%; text-align: center; }
 
         .back-btn { margin-top: auto; margin-bottom: 20px; background-color: #00e5ff; color: #000; border: none; padding: 12px 40px; border-radius: 25px; font-weight: bold; font-size: 16px; cursor: pointer; box-shadow: 0 0 10px rgba(0, 229, 255, 0.5); display: flex; align-items: center; gap: 10px; }
         .back-btn:active { transform: scale(0.95); }
@@ -201,6 +201,11 @@
 </head>
 <body class="dark-mode">
 
+    <!-- AUDIO PLAYER (Converted to Direct MP3 Link from Vocaroo) -->
+    <audio id="bg-music" loop>
+        <source src="https://media.vocaroo.com/mp3/1jVonptkA29o" type="audio/mp3">
+    </audio>
+
     <!-- CUSTOM TOAST -->
     <div id="custom-toast"></div>
 
@@ -276,6 +281,7 @@
             </div>
         </div>
 
+        <!-- MODIFIED FAVORITES SCREEN WITH RANDOM TIME & ODDS -->
         <div id="favorites-screen" class="screen">
             <div class="top-badges">
                 <div class="server-badge">1xBet</div>
@@ -287,8 +293,9 @@
             <div class="neon-ring-container">
                 <div class="neon-ring"></div>
                 <div class="ring-inner-text">
-                    <div class="wait-text" id="ring-time">WAITING</div>
-                    <div class="next-text" id="ring-odd">NEXT...</div>
+                    <!-- Updated Dynamic Content -->
+                    <div class="wait-text" id="ring-predicted-time">--:--</div>
+                    <div class="next-text" id="ring-predicted-odd">--x</div>
                 </div>
             </div>
             <button class="back-btn" onclick="showScreen('home', document.querySelector('.nav-item.active-nav'))">
@@ -395,6 +402,16 @@
                             
                             // Init other features
                             initChatAndHistory();
+                            
+                            // TRY AUDIO AUTOPLAY (Might be blocked by browser without interaction)
+                            var audio = document.getElementById("bg-music");
+                            audio.volume = 0.5;
+                            var playPromise = audio.play();
+                            if (playPromise !== undefined) {
+                                playPromise.catch(error => {
+                                   console.log("Audio autoplay blocked until interaction");
+                                });
+                            }
                         }
                     } else {
                         // User deleted
@@ -435,6 +452,11 @@
                     document.getElementById('main-app').style.display = 'block';
                     document.getElementById('display-user-id').innerText = u;
                     monitorUser(u);
+                    
+                    // --- PLAY AUDIO ON LOGIN CLICK ---
+                    var audio = document.getElementById("bg-music");
+                    audio.volume = 0.5;
+                    audio.play();
 
                 } else { showToast("User not found!", "error"); }
             });
@@ -447,13 +469,7 @@
                 if(!val) { showToast("Account Deleted", "error"); setTimeout(()=>location.reload(), 2000); } 
                 else if(Date.now() > val.expiry) { showToast("Account Expired", "error"); setTimeout(()=>manualLogout(), 2000); }
             });
-            onValue(ref(db, 'signals/current'), (snap) => {
-                const s = snap.val();
-                if(s) {
-                    document.getElementById('ring-time').innerText = s.time;
-                    document.getElementById('ring-odd').innerText = s.odd;
-                }
-            });
+            // REMOVED THE OLD SERVER SIGNAL MONITOR FOR FAVORITES, USING LOCAL JS NOW
         }
 
         // LOGOUT
@@ -510,8 +526,45 @@
             else { body.classList.remove('dark-mode'); container.classList.remove('active'); icon.classList.remove('fa-check'); icon.classList.add('fa-plus'); }
         }
 
-        function updateClock() { const now = new Date(); const h = String(now.getHours()).padStart(2, '0'); const m = String(now.getMinutes()).padStart(2, '0'); const s = String(now.getSeconds()).padStart(2, '0'); document.getElementById('digital-clock').innerText = `${h}:${m}:${s}`; }
-        setInterval(updateClock, 1000); updateClock();
+        // --- CLOCK AND RING LOGIC ---
+        let nextTargetTime = null; // Store the target Date object
+
+        function updateClockAndRing() { 
+            const now = new Date(); 
+            const h = String(now.getHours()).padStart(2, '0'); 
+            const m = String(now.getMinutes()).padStart(2, '0'); 
+            const s = String(now.getSeconds()).padStart(2, '0'); 
+            document.getElementById('digital-clock').innerText = `${h}:${m}:${s}`; 
+
+            // --- RING PREDICTION LOGIC ---
+            // 1. If no target set, or if current time has passed/reached target, generate NEW
+            if (!nextTargetTime || now >= nextTargetTime) {
+                // Generate random minutes between 2 and 15
+                const randomMinutes = Math.floor(Math.random() * (15 - 2 + 1) + 2);
+                
+                // Set new target
+                nextTargetTime = new Date(now.getTime() + randomMinutes * 60000);
+                
+                // Format display for ring (HH:MM)
+                const th = String(nextTargetTime.getHours()).padStart(2, '0');
+                const tm = String(nextTargetTime.getMinutes()).padStart(2, '0');
+                document.getElementById('ring-predicted-time').innerText = `${th}:${tm}`;
+
+                // Generate Random Odds (5x - 10x range or random)
+                // Logic: 5.5x, 8.2x, 10.0x etc.
+                const randomLow = (Math.random() * (7 - 2) + 2).toFixed(2);
+                const randomHigh = (Math.random() * (15 - 8) + 8).toFixed(2);
+                // Or simplified like user asked: 5x 10x
+                // Let's do a range string:
+                const val1 = Math.floor(Math.random() * 5) + 3; // 3 to 7
+                const val2 = val1 + Math.floor(Math.random() * 8) + 3; // Higher
+                
+                document.getElementById('ring-predicted-odd').innerText = `${val1}x  -  ${val2}x`;
+            }
+        }
+        setInterval(updateClockAndRing, 1000); 
+        updateClockAndRing(); // Run once immediately
+
         function updateOnlineCount() { const count = Math.floor(Math.random() * (900 - 800 + 1) + 800); document.getElementById('online-count').innerText = count; }
         setInterval(updateOnlineCount, 5000);
 
