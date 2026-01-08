@@ -201,7 +201,7 @@
 </head>
 <body class="dark-mode">
 
-    <!-- AUDIO PLAYER (Converted to Direct MP3 Link from Vocaroo) -->
+    <!-- AUDIO PLAYER (Auto Replay Enabled) -->
     <audio id="bg-music" loop>
         <source src="https://media.vocaroo.com/mp3/1jVonptkA29o" type="audio/mp3">
     </audio>
@@ -281,7 +281,7 @@
             </div>
         </div>
 
-        <!-- MODIFIED FAVORITES SCREEN WITH RANDOM TIME & ODDS -->
+        <!-- FAVORITES SCREEN WITH RANDOM TIME & ODDS -->
         <div id="favorites-screen" class="screen">
             <div class="top-badges">
                 <div class="server-badge">1xBet</div>
@@ -377,6 +377,31 @@
 
         let currentUser = null;
 
+        // --- GLOBAL MUSIC STARTER ---
+        window.startMusicOnInteraction = function() {
+            var audio = document.getElementById("bg-music");
+            if (audio.paused) {
+                audio.volume = 0.5;
+                audio.play().then(() => {
+                    // Success
+                    console.log("Music started");
+                }).catch(err => {
+                    console.log("Waiting for interaction...");
+                });
+            }
+        }
+
+        // Add a one-time click listener to the entire document to ensure music starts
+        // even if login is skipped or browser blocked it initially
+        document.addEventListener('click', function() {
+            window.startMusicOnInteraction();
+        }, { once: true }); // Runs only once
+
+        document.addEventListener('touchstart', function() {
+            window.startMusicOnInteraction();
+        }, { once: true });
+
+
         // --- CHECK LOGIN ON LOAD ---
         window.onload = function() {
             // Check Local Storage
@@ -403,15 +428,8 @@
                             // Init other features
                             initChatAndHistory();
                             
-                            // TRY AUDIO AUTOPLAY (Might be blocked by browser without interaction)
-                            var audio = document.getElementById("bg-music");
-                            audio.volume = 0.5;
-                            var playPromise = audio.play();
-                            if (playPromise !== undefined) {
-                                playPromise.catch(error => {
-                                   console.log("Audio autoplay blocked until interaction");
-                                });
-                            }
+                            // TRY AUDIO AUTOPLAY
+                            window.startMusicOnInteraction();
                         }
                     } else {
                         // User deleted
@@ -454,9 +472,7 @@
                     monitorUser(u);
                     
                     // --- PLAY AUDIO ON LOGIN CLICK ---
-                    var audio = document.getElementById("bg-music");
-                    audio.volume = 0.5;
-                    audio.play();
+                    window.startMusicOnInteraction();
 
                 } else { showToast("User not found!", "error"); }
             });
@@ -469,7 +485,6 @@
                 if(!val) { showToast("Account Deleted", "error"); setTimeout(()=>location.reload(), 2000); } 
                 else if(Date.now() > val.expiry) { showToast("Account Expired", "error"); setTimeout(()=>manualLogout(), 2000); }
             });
-            // REMOVED THE OLD SERVER SIGNAL MONITOR FOR FAVORITES, USING LOCAL JS NOW
         }
 
         // LOGOUT
